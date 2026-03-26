@@ -1,0 +1,1074 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Télécommande v2 - Directions</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      background-color: #0d1b2a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background-color: #1b263b;
+      padding: 20px;
+      box-sizing: border-box;
+      color: white;
+    }
+
+    .user-info {
+      position: absolute;
+      top: 25px;
+      right: 150px;
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 12px;
+      text-align: right;
+    }
+
+    .cardinal-pad {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr 1fr;
+      gap: 15px;
+      width: 600px;
+      height: 600px;
+    }
+
+    .cardinal-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .cardinal-cell.empty {
+      visibility: hidden;
+    }
+
+    .cardinal-cell .label {
+      font-size: 16px;
+      font-weight: bold;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .cardinal-cell .btns {
+      display: flex;
+      gap: 8px;
+    }
+
+    .cardinal-btn {
+      padding: 15px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 18px;
+      color: white;
+      transition: transform 0.1s, background 0.2s;
+    }
+
+    .cardinal-btn:hover {
+      transform: scale(1.05);
+    }
+
+    .cardinal-btn:active {
+      transform: scale(0.98);
+    }
+
+    .cardinal-btn.mm20 {
+      background-color: #415a77;
+    }
+
+    .cardinal-btn.mm20:hover {
+      background-color: #526d8c;
+    }
+
+    .cardinal-btn.mm10 {
+      background-color: #3d5a6c;
+    }
+
+    .cardinal-btn.mm10:hover {
+      background-color: #4a6d82;
+    }
+
+    .cardinal-btn.mm5 {
+      background-color: #2d4554;
+    }
+
+    .cardinal-btn.mm5:hover {
+      background-color: #3a5668;
+    }
+
+    .camera,
+    .temperature {
+      position: absolute;
+      font-size: 16px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .camera {
+      left: 40px;
+      top: 40px;
+    }
+
+    .temperature {
+      right: 40px;
+      top: 150px;
+      text-align: right;
+    }
+
+    .camera-box,
+    .temp-box {
+      background: #415a77;
+      border-radius: 8px;
+      padding: 15px 20px;
+      margin-top: 8px;
+    }
+
+    .camera-box {
+      width: 360px;
+      height: 240px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+    }
+
+    .reset,
+    .historique {
+      position: absolute;
+      bottom: 40px;
+      padding: 15px 30px;
+      background-color: #415a77;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .reset {
+      left: 40px;
+    }
+
+    .historique {
+      right: 200px;
+    }
+
+    .reset:hover,
+    .historique:hover {
+      background-color: #778da9;
+    }
+
+    .history-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: #1b263b;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 40px;
+    }
+
+    .history-columns {
+      display: flex;
+      gap: 30px;
+      width: 90%;
+      max-width: 800px;
+      max-height: 70vh; /* Réduction de la hauteur */
+      flex: 1;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .history-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: rgba(13, 27, 42, 0.4);
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid rgba(65, 90, 119, 0.3);
+    }
+
+    .history-col h3 {
+      margin-top: 0;
+      margin-bottom: 15px;
+      font-size: 18px;
+      color: #00b4d8;
+      text-align: center;
+      border-bottom: 2px solid rgba(0, 180, 216, 0.3);
+      padding-bottom: 10px;
+    }
+
+    .history-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      overflow-y: auto;
+      flex: 1;
+    }
+
+    .history-item {
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .history-item:last-child {
+      border-bottom: none;
+    }
+
+    .history-item .time {
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 11px;
+    }
+
+    .history-badge {
+      padding: 3px 8px;
+      background: #415a77;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 12px;
+    }
+
+    .history-badge {
+      min-width: 70px;
+      padding: 4px 8px;
+      background: #415a77;
+      border-radius: 6px;
+      font-weight: bold;
+      text-align: center;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .login-screen {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(135deg, #0d1b2a 0%, #1b263b 100%);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .login-form {
+      background-color: #0d1b2a;
+      padding: 50px 40px;
+      border-radius: 16px;
+      width: 360px;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(65, 90, 119, 0.4);
+    }
+
+    .login-form h2 {
+      margin-top: 0;
+      margin-bottom: 8px;
+      text-align: center;
+      font-size: 22px;
+    }
+
+    .login-subtitle {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.4);
+      font-size: 13px;
+      margin-bottom: 35px;
+      margin-top: 0;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #415a77;
+      border-radius: 8px;
+      background-color: #1b263b;
+      color: white;
+      font-size: 14px;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+
+    .form-group input:focus {
+      outline: none;
+      border-color: #00b4d8;
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #415a77, #00b4d8);
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: opacity 0.2s;
+    }
+
+    .login-btn:hover {
+      opacity: 0.85;
+    }
+
+    /* Bouton engrenage MQTT */
+    .mqtt-gear-btn {
+      position: fixed;
+      bottom: 30px;
+      right: 30px;
+      width: 54px;
+      height: 54px;
+      background: #415a77;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      z-index: 100;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+      transition: background 0.2s, transform 0.3s;
+    }
+
+    .mqtt-gear-btn:hover {
+      background: #778da9;
+      transform: rotate(60deg);
+    }
+
+    .mqtt-gear-btn.connected {
+      background: #0077b6;
+    }
+
+    /* Modal MQTT */
+    .mqtt-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      z-index: 200;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+    }
+
+    .mqtt-modal {
+      background: #0d1b2a;
+      border: 1px solid #415a77;
+      border-radius: 16px 0 0 16px;
+      padding: 30px;
+      width: 400px;
+      max-height: 100vh;
+      overflow-y: auto;
+      box-shadow: -8px 0 40px rgba(0, 0, 0, 0.5);
+      animation: slideIn 0.25s ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .mqtt-modal h3 {
+      margin-top: 0;
+      font-size: 18px;
+      display: space-between;
+      align-items: center;
+    }
+
+    .mqtt-modal .close-btn {
+      background: none;
+      border: none;
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .mqtt-status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    .mqtt-status-badge.connected {
+      background: #0077b6;
+    }
+
+    .mqtt-status-badge.disconnected {
+      background: #415a77;
+    }
+
+    .mqtt-connect-btn {
+      width: 100%;
+      padding: 12px;
+      background: #00b4d8;
+      border: none;
+      border-radius: 8px;
+      color: white;
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 5px;
+      transition: opacity 0.2s;
+    }
+
+    .mqtt-connect-btn:hover {
+      opacity: 0.85;
+    }
+
+    /* Contrôles de flux caméra */
+    .camera-controls {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      width: 360px;
+    }
+
+    .stream-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: bold;
+      color: white;
+      transition: opacity 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .stream-btn:active {
+      transform: scale(0.98);
+    }
+
+    .btn-start {
+      background: #0077b6;
+    }
+
+    .btn-stop {
+      background: #d90429;
+    }
+
+    .btn-power-on {
+      background: #2b9348;
+    }
+
+    .btn-power-off {
+      background: #d00000;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Page de connexion -->
+    <div id="login-view" class="login-screen">
+      <div class="login-form">
+        <h2>🔐 Connexion</h2>
+        <p class="login-subtitle">Système de Télécommande</p>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-user">Identifiant :</label>
+            <input type="text" id="login-user" placeholder="admin" required autocomplete="username">
+          </div>
+          <div class="form-group">
+            <label for="login-pass">Mot de passe :</label>
+            <input type="password" id="login-pass" placeholder="••••••" required autocomplete="current-password">
+          </div>
+          <div id="login-error"
+            style="color: #ef233c; text-align: center; font-size: 13px; margin-bottom: 10px; display: none;">
+            Identifiants incorrects.</div>
+          <button type="submit" class="login-btn">Connexion</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Modal paramètres MQTT -->
+    <div id="mqtt-modal-overlay" class="mqtt-modal-overlay hidden">
+      <div class="mqtt-modal">
+        <h3>⚙️ Paramètres MQTT <button class="close-btn" id="mqtt-modal-close">✕</button></h3>
+        <div id="mqtt-status-badge" class="mqtt-status-badge disconnected">● Déconnecté</div>
+        
+        <div class="form-group">
+          <label>Serveur (broker) :</label>
+          <input type="text" id="mqtt-address" value="telecommande.cloud.shiftr.io" placeholder="ex: brokerage.shiftr.io">
+        </div>
+
+        <div class="form-group">
+          <label>Topics (séparés par des virgules) :</label>
+          <input type="text" id="mqtt-topics" placeholder="ex: # ou topic1, topic2" value="sensors_data">
+        </div>
+
+        <div class="form-group">
+          <label>Protocole :</label>
+          <select id="mqtt-protocol"
+            style="width: 100%; padding: 12px; border: 2px solid #415a77; border-radius: 8px; background-color: #1b263b; color: white; font-size: 14px; box-sizing: border-box;">
+            <option value="wss" selected>SSL / HTTPS (wss://)</option>
+            <option value="ws">Normal / HTTP (ws://)</option>
+          </select>
+        </div>
+        
+        <div id="mqtt-error-msg" style="color: #ef233c; font-size: 13px; margin-bottom: 10px; display: none;"></div>
+        <div id="mqtt-subscribed-topics" style="color: #00b4d8; font-size: 12px; margin-bottom: 10px; display: none;"></div>
+        <button class="mqtt-connect-btn" id="btn-mqtt-connect">Se connecter</button>
+        <button id="btn-mqtt-disconnect"
+          style="width: 100%; padding: 10px; background: none; border: 1px solid #d90429; border-radius: 8px; color: #d90429; font-size: 14px; cursor: pointer; margin-top: 10px; display: none;">Se
+          déconnecter</button>
+      </div>
+    </div>
+
+    <!-- Vue principale -->
+    <div id="main-view" class="hidden">
+      <div class="user-info" id="user-info"></div>
+      <button id="btn-disconnect"
+        style="position: absolute; top: 20px; right: 20px; background-color: #d90429; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; z-index: 50;">Déconnexion</button>
+      <div class="camera">
+        <span style="display: flex; justify-content: space-between; align-items: center; width: 360px;">
+          Caméra ESP32
+          <div style="display: flex; gap: 8px;">
+            <button id="btn-reload-camera"
+              style="background: rgba(0,180,216,0.1); border: none; color: #00b4d8; cursor: pointer; border-radius: 4px; padding: 2px 6px; font-size: 12px; display: flex; align-items: center; justify-content: center;"
+              title="Recharger le flux vidéo">🔄</button>
+            <a href="http://172.20.10.3/" target="_blank"
+              style="color: #00b4d8; text-decoration: none; font-size: 12px; padding: 2px 6px; background: rgba(0,180,216,0.1); border-radius: 4px;">⚙️
+              Réglages OV2640</a>
+          </div>
+        </span>
+        <div class="camera-box" style="padding: 0; overflow: hidden; background: #0d1b2a; position: relative;">
+          <!-- L'ESP32 diffuse le streaming vidéo (MJPEG) sur le port 81 par défaut -->
+          <img id="camera-stream" src=""
+            style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; display: none;"
+            onerror="this.style.display='none'; document.getElementById('camera-error').style.display='flex';">
+          <div id="camera-error"
+            style="position: absolute; flex-direction: column; justify-content: center; align-items: center; color: rgba(255,255,255,0.5); font-size: 14px; text-align: center; display: flex; width: 100%; height: 100%;">
+            <span>Flux non démarré</span>
+            <span style="font-size: 11px; margin-top: 5px;">Appuyez sur "Stream Start" pour lancer la vidéo</span>
+          </div>
+        </div>
+        <div class="camera-controls">
+          <button id="btn-stream-start" class="stream-btn btn-start">▶ Stream Start</button>
+          <button id="btn-stream-stop" class="stream-btn btn-stop">⏹ Stream Stop</button>
+        </div>
+        <div class="camera-controls" style="margin-top: 8px;">
+          <button id="btn-camera-on" class="stream-btn btn-power-on">⚡ Allumer Caméra</button>
+          <button id="btn-camera-off" class="stream-btn btn-power-off">🔌 Éteindre Caméra</button>
+        </div>
+      </div>
+      <div class="temperature">
+        <div class="temp-box" id="temp-display">— °C</div>
+      </div>
+
+      <div class="cardinal-pad">
+        <div class="cardinal-cell empty"></div>
+        <div class="cardinal-cell" data-direction="Haut">
+          <span class="label">Haut</span>
+          <div class="btns" style="flex-direction: column;">
+            <button class="cardinal-btn mm20" data-mm="20">20 mm</button>
+            <button class="cardinal-btn mm10" data-mm="10">10 mm</button>
+            <button class="cardinal-btn mm5" data-mm="5">5 mm</button>
+          </div>
+        </div>
+        <div class="cardinal-cell empty"></div>
+        <div class="cardinal-cell" data-direction="Gauche">
+          <span class="label">Gauche</span>
+          <div class="btns" style="flex-direction: row; align-items: center;">
+            <button class="cardinal-btn mm20" data-mm="20">20 mm</button>
+            <button class="cardinal-btn mm10" data-mm="10">10 mm</button>
+            <button class="cardinal-btn mm5" data-mm="5">5 mm</button>
+          </div>
+        </div>
+        <div class="cardinal-cell" data-direction="Centre"
+          style="display: flex; justify-content: center; align-items: center;">
+          <button class="cardinal-btn" data-mm="0"
+            style="background-color: #d90429; color: white; width: 100px; height: 100px; border-radius: 50%; border: 4px solid #ef233c; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 20px; display: flex; justify-content: center; align-items: center; padding: 0;">STOP</button>
+        </div>
+        <div class="cardinal-cell" data-direction="Droite">
+          <span class="label">Droite</span>
+          <div class="btns" style="flex-direction: row; align-items: center;">
+            <button class="cardinal-btn mm5" data-mm="5">5 mm</button>
+            <button class="cardinal-btn mm10" data-mm="10">10 mm</button>
+            <button class="cardinal-btn mm20" data-mm="20">20 mm</button>
+          </div>
+        </div>
+        <div class="cardinal-cell empty"></div>
+        <div class="cardinal-cell" data-direction="Bas">
+          <div class="btns" style="flex-direction: column;">
+            <button class="cardinal-btn mm5" data-mm="5">5 mm</button>
+            <button class="cardinal-btn mm10" data-mm="10">10 mm</button>
+            <button class="cardinal-btn mm20" data-mm="20">20 mm</button>
+          </div>
+          <span class="label">Bas</span>
+        </div>
+        <div class="cardinal-cell empty"></div>
+      </div>
+
+      <button class="reset" id="btn-reset-main">Reset</button>
+      <button class="historique" id="btn-histoire">Historique</button>
+
+      <!-- Bouton engrenage MQTT -->
+      <button class="mqtt-gear-btn" id="btn-mqtt-gear" title="Paramètres MQTT">⚙️</button>
+    </div>
+
+    <div id="history-view" class="history-screen hidden">
+      <h2 style="margin-top: 0; margin-bottom: 30px;">Historique d'activité</h2>
+      
+      <div class="history-columns">
+        <!-- Colonne Gauche : Touches -->
+        <div class="history-col">
+          <h3>📦 Commandes Touches</h3>
+          <ul id="history-touches" class="history-list"></ul>
+        </div>
+
+        <!-- Colonne Droite : Capteurs -->
+        <div class="history-col">
+          <h3>🌡️ Données Capteurs</h3>
+          <ul id="history-sensors" class="history-list"></ul>
+        </div>
+      </div>
+
+      <!-- Boutons au-dessus du message d'erreur et proches des colonnes -->
+      <div style="margin-bottom: 10px; display: flex; gap: 15px;">
+        <button id="btn-reset" class="login-btn" style="width: auto; padding: 10px 20px; margin: 0; background: linear-gradient(135deg, #415a77, #d90429);">Réinitialiser</button>
+        <button id="btn-back" class="login-btn" style="width: auto; padding: 10px 20px; margin: 0; background: linear-gradient(135deg, #415a77, #778da9);">Retour</button>
+      </div>
+      
+      <p id="empty-msg" style="position: absolute; top: 60%; color: rgba(255,255,255,0.3);">Aucune donnée pour l'instant.</p>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script>
+    const history = [];
+    const sensorsHistory = []; // Max 10 sensor records
+    let mqttClient = null;
+    let currentTopic = "sensors_data";
+    const discoveredTopics = new Map(); // topic -> {value, time}
+    let lastTemp = "—";
+    let lastHum = "—";
+
+    const loginView = document.getElementById('login-view');
+    const mainView = document.getElementById('main-view');
+    const historyView = document.getElementById('history-view');
+    const userInfo = document.getElementById('user-info');
+    const emptyMsg = document.getElementById('empty-msg');
+    const historyTouches = document.getElementById('history-touches');
+    const historySensors = document.getElementById('history-sensors');
+    const btnDisconnect = document.getElementById('btn-disconnect');
+    const tempDisplay = document.getElementById('temp-display');
+
+    // Gestion du login admin
+    const loginForm = document.getElementById('login-form');
+    const loginError = document.getElementById('login-error');
+
+    loginForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const user = document.getElementById('login-user').value.trim();
+      const pass = document.getElementById('login-pass').value.trim();
+
+      if (user === 'admin' && pass === 'admin') {
+        loginView.classList.add('hidden');
+        mainView.classList.remove('hidden');
+        userInfo.textContent = `Connecté en tant que: ${user}`;
+      } else {
+        loginError.style.display = 'block';
+      }
+    });
+
+    // === Gestion du panneau MQTT (engrenage) ===
+    const mqttModalOverlay = document.getElementById('mqtt-modal-overlay');
+    const mqttGearBtn = document.getElementById('btn-mqtt-gear');
+    const mqttErrorMsg = document.getElementById('mqtt-error-msg');
+    const mqttStatusBadge = document.getElementById('mqtt-status-badge');
+    const mqttConnectBtn = document.getElementById('btn-mqtt-connect');
+    const mqttDisconnectBtn = document.getElementById('btn-mqtt-disconnect');
+
+    mqttGearBtn.addEventListener('click', () => {
+      mqttModalOverlay.classList.remove('hidden');
+    });
+
+    document.getElementById('mqtt-modal-close').addEventListener('click', () => {
+      mqttModalOverlay.classList.add('hidden');
+    });
+
+    mqttModalOverlay.addEventListener('click', (e) => {
+      if (e.target === mqttModalOverlay) mqttModalOverlay.classList.add('hidden');
+    });
+
+    function setMqttConnectedState(connected, addr) {
+      if (connected) {
+        mqttStatusBadge.textContent = '● Connecté : ' + addr;
+        mqttStatusBadge.className = 'mqtt-status-badge connected';
+        mqttConnectBtn.style.display = 'none';
+        mqttDisconnectBtn.style.display = 'block';
+        mqttGearBtn.classList.add('connected');
+      } else {
+        mqttStatusBadge.textContent = '● Déconnecté';
+        mqttStatusBadge.className = 'mqtt-status-badge disconnected';
+        mqttConnectBtn.style.display = 'block';
+        mqttDisconnectBtn.style.display = 'none';
+        mqttGearBtn.classList.remove('connected');
+      }
+    }
+
+    mqttConnectBtn.addEventListener('click', () => {
+      let address = document.getElementById('mqtt-address').value.trim();
+      const protocol = document.getElementById('mqtt-protocol').value;
+      const port = (protocol === 'wss') ? '443' : '80'; // Ports standards WebSockets
+      
+      // Default credentials hardcoded as requested
+      const user = "telecommande";
+      const pass = "Telecommande2026";
+
+      if (!address) return;
+
+      if (address.includes('://')) address = address.split('://')[1];
+      const fullAddress = `${protocol}://${address}:${port}`;
+
+      mqttErrorMsg.style.display = 'none';
+      mqttConnectBtn.textContent = 'Connexion...';
+      mqttConnectBtn.disabled = true;
+
+      try {
+        const options = {
+          keepalive: 60,
+          clientId: 'telecommande_web_' + Math.random().toString(16).substr(2, 8),
+        };
+
+        if (user) options.username = user;
+        if (pass) options.password = pass;
+
+        mqttClient = mqtt.connect(fullAddress, options);
+        currentTopic = 'sensors_data';
+
+        mqttClient.on('connect', () => {
+          console.log('Connecté MQTT:', fullAddress);
+          setMqttConnectedState(true, fullAddress);
+          mqttConnectBtn.textContent = 'Se connecter';
+          mqttConnectBtn.disabled = false;
+          tempDisplay.textContent = 'En attente de données...';
+
+          // Récupérer et souscrire aux topics saisis
+          const topicsInput = document.getElementById('mqtt-topics').value;
+          const topicsList = topicsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
+          currentTopic = topicsList[0] || 'sensors_data';
+          topicsList.forEach(t => mqttClient.subscribe(t));
+
+          // Afficher les topics abonnés sous le badge
+          document.getElementById('mqtt-subscribed-topics').textContent =
+            'Topics : ' + topicsList.join(', ');
+          document.getElementById('mqtt-subscribed-topics').style.display = 'block';
+        });
+
+        mqttClient.on('message', (receivedTopic, message) => {
+          const dataText = message.toString();
+          const now = new Date();
+          const timeStr = now.getHours() + ':' + now.getMinutes().toString().padStart(2, '0') + ':' + now.getSeconds().toString().padStart(2, '0');
+          discoveredTopics.set(receivedTopic, { value: dataText, time: timeStr });
+          
+          // Afficher si c'est le topic suivi OU si on écoute tout (#)
+          const isTarget = (receivedTopic === currentTopic || currentTopic === '#');
+          
+          if (discoveredTopics.size > 0 && isTarget) {
+            let displayValue = dataText;
+            let sensorObj = null;
+            try {
+              sensorObj = JSON.parse(dataText);
+              if (sensorObj.temperature !== undefined) lastTemp = sensorObj.temperature;
+              if (sensorObj.humidity !== undefined) lastHum = sensorObj.humidity;
+              
+              if (sensorObj.temperature !== undefined && sensorObj.humidity !== undefined) {
+                displayValue = `${sensorObj.temperature} °C / ${sensorObj.humidity} %`;
+              } else if (sensorObj.temperature !== undefined) {
+                displayValue = `${sensorObj.temperature} °C`;
+              } else if (sensorObj.humidity !== undefined) {
+                displayValue = `${sensorObj.humidity} %`;
+              }
+            } catch (e) { }
+            
+            // On met à jour l'affichage principal systématiquement si c'est le topic cible
+            if (displayValue !== dataText || receivedTopic === currentTopic) {
+              tempDisplay.textContent = displayValue;
+              tempDisplay.style.background = '#00b4d8';
+              setTimeout(() => { tempDisplay.style.background = '#415a77'; }, 300);
+
+              // Ajout à l'historique des capteurs (max 10)
+              if (sensorObj && (sensorObj.temperature !== undefined || sensorObj.humidity !== undefined)) {
+                sensorsHistory.push({
+                  temp: sensorObj.temperature !== undefined ? sensorObj.temperature : lastTemp,
+                  hum: sensorObj.humidity !== undefined ? sensorObj.humidity : lastHum,
+                  time: timeStr
+                });
+                if (sensorsHistory.length > 10) sensorsHistory.shift();
+                
+                // Si la vue historique est ouverte, on rafraîchit
+                if (!historyView.classList.contains('hidden')) renderHistory();
+              }
+            }
+          }
+        });
+
+        mqttClient.on('error', (err) => {
+          console.error('Erreur MQTT:', err);
+          mqttErrorMsg.innerHTML = `Échec de connexion.<br><small>${err.message || ''}</small>`;
+          mqttErrorMsg.style.display = 'block';
+          mqttConnectBtn.textContent = 'Se connecter';
+          mqttConnectBtn.disabled = false;
+          if (mqttClient) { mqttClient.end(); mqttClient = null; }
+          setMqttConnectedState(false);
+        });
+
+        mqttClient.on('close', () => {
+          setMqttConnectedState(false);
+        });
+
+      } catch (err) {
+        mqttErrorMsg.textContent = 'Adresse invalide.';
+        mqttErrorMsg.style.display = 'block';
+        mqttConnectBtn.textContent = 'Se connecter';
+        mqttConnectBtn.disabled = false;
+      }
+    });
+
+    mqttDisconnectBtn.addEventListener('click', () => {
+      if (mqttClient) { mqttClient.end(); mqttClient = null; }
+      setMqttConnectedState(false);
+      tempDisplay.textContent = '— °C';
+      discoveredTopics.clear();
+    });
+
+    btnDisconnect.addEventListener('click', () => {
+      if (mqttClient) { mqttClient.end(); mqttClient = null; }
+      mainView.classList.add('hidden');
+      loginView.classList.remove('hidden');
+      loginForm.reset();
+      tempDisplay.textContent = '— °C';
+      userInfo.textContent = '';
+      discoveredTopics.clear();
+      setMqttConnectedState(false);
+    });
+
+
+    document.querySelectorAll('.cardinal-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const cell = btn.closest('.cardinal-cell');
+        const direction = cell.dataset.direction;
+        const mm = btn.dataset.mm;
+        const now = new Date();
+        const time = now.getHours().toString().padStart(2, '0') + ':' + 
+                     now.getMinutes().toString().padStart(2, '0') + ':' + 
+                     now.getSeconds().toString().padStart(2, '0');
+        history.push({ direction, mm, time, temp: lastTemp, hum: lastHum });
+
+        // Envoyer la commande MQTT sur motors_commands
+        if (mqttClient && mqttClient.connected) {
+          let payloadObj = { action: direction, distance: mm };
+          
+          if (direction === 'Haut' || direction === 'Bas' || direction === 'Droite' || direction === 'Gauche') {
+            let steps = 0;
+            const distanceMm = parseInt(mm);
+            
+            if (direction === 'Haut' || direction === 'Bas') {
+              // Ratio Vertical : 195 pas / mm (975 pas pour 5mm)
+              steps = distanceMm * 195;
+              
+              let m2_dir = (direction === 'Haut') ? 'backward' : 'forward';
+              payloadObj = { 
+                type: "move_by", 
+                m1_steps: 0, 
+                m1_dir: "forward", 
+                m2_steps: steps, 
+                m2_dir: m2_dir 
+              };
+            } else {
+              // Ratio Horizontal : 83.4 pas / mm (834 pas pour 10mm)
+              steps = Math.round(distanceMm * 83.4);
+              
+              let m1_dir = (direction === 'Droite') ? 'backward' : 'forward';
+              payloadObj = { 
+                type: "move_by", 
+                m1_steps: steps, 
+                m1_dir: m1_dir, 
+                m2_steps: 0, 
+                m2_dir: "forward" 
+              };
+            }
+          }
+          
+          const payload = JSON.stringify(payloadObj);
+          mqttClient.publish("motors_commands", payload);
+        }
+      });
+    });
+
+    document.getElementById('btn-histoire').addEventListener('click', () => {
+      mainView.classList.add('hidden');
+      historyView.classList.remove('hidden');
+      renderHistory();
+    });
+    document.getElementById('btn-back').addEventListener('click', () => {
+      historyView.classList.add('hidden');
+      mainView.classList.remove('hidden');
+    });
+    document.getElementById('btn-reset').addEventListener('click', () => {
+      history.length = 0;
+      renderHistory();
+    });
+
+    function renderHistory() {
+      const isHistoryEmpty = history.length === 0 && sensorsHistory.length === 0;
+      emptyMsg.style.display = isHistoryEmpty ? 'block' : 'none';
+      
+      // --- Rendu des Touches (Gauche) ---
+      historyTouches.innerHTML = history.map(e => `
+        <li class="history-item">
+          <span class="history-badge" style="background: #415a77;">${e.direction} ${e.mm}mm</span>
+          <span class="time">${e.time}</span>
+        </li>
+      `).reverse().join('');
+
+      // --- Rendu des Capteurs (Droite) ---
+      historySensors.innerHTML = sensorsHistory.map(e => `
+        <li class="history-item">
+          <div style="display: flex; flex-direction: column;">
+            <span style="color: #00b4d8; font-weight: bold; font-size: 14px;">${e.temp}°C</span>
+            <span style="color: #48cae4; font-size: 12px;">${e.hum}% Hum</span>
+          </div>
+          <span class="time">${e.time}</span>
+        </li>
+      `).reverse().join('');
+    }
+
+    // === Gestion du flux Caméra ===
+    const cameraStream = document.getElementById('camera-stream');
+    const cameraError = document.getElementById('camera-error');
+    const btnStreamStart = document.getElementById('btn-stream-start');
+    const btnStreamStop = document.getElementById('btn-stream-stop');
+    const STREAM_BASE_URL = "http://172.20.10.3:81/stream";
+
+    function updateCameraStatus(isStreaming, errorText = "Caméra non disponible", smallText = "Vérifiez que l'ESP32 est allumé et sur 172.20.10.3") {
+      if (isStreaming) {
+        cameraStream.style.display = 'block';
+        cameraError.style.display = 'none';
+        btnStreamStart.style.opacity = '0.5';
+        btnStreamStart.disabled = true;
+        btnStreamStop.style.opacity = '1';
+        btnStreamStop.disabled = false;
+      } else {
+        cameraStream.src = "";
+        cameraStream.style.display = 'none';
+        cameraError.style.display = 'flex';
+        cameraError.querySelector('span').textContent = errorText;
+        cameraError.querySelectorAll('span')[1].textContent = smallText;
+        btnStreamStart.style.opacity = '1';
+        btnStreamStart.disabled = false;
+        btnStreamStop.style.opacity = '0.5';
+        btnStreamStop.disabled = true;
+      }
+    }
+
+    btnStreamStart.addEventListener('click', () => {
+      cameraStream.src = STREAM_BASE_URL + "?t=" + new Date().getTime();
+      updateCameraStatus(true);
+    });
+
+    btnStreamStop.addEventListener('click', () => {
+      updateCameraStatus(false, "Flux arrêté", "Appuyez sur 'Stream Start' pour lancer la vidéo");
+    });
+
+    // Contrôles d'alimentation (MQTT)
+    document.getElementById('btn-camera-on').addEventListener('click', () => {
+      if (mqttClient && mqttClient.connected) {
+        const payload = JSON.stringify({ type: "camera", action: "power_on" });
+        mqttClient.publish("camera_commands", payload);
+        // Feedback visuel
+        const btn = document.getElementById('btn-camera-on');
+        btn.style.opacity = '0.7';
+        setTimeout(() => btn.style.opacity = '1', 200);
+      } else {
+        alert("MQTT non connecté. Connectez-vous via l'engrenage ⚙️");
+      }
+    });
+
+    document.getElementById('btn-camera-off').addEventListener('click', () => {
+      if (mqttClient && mqttClient.connected) {
+        const payload = JSON.stringify({ type: "camera", action: "power_off" });
+        mqttClient.publish("camera_commands", payload);
+        // Feedback visuel
+        const btn = document.getElementById('btn-camera-off');
+        btn.style.opacity = '0.7';
+        setTimeout(() => btn.style.opacity = '1', 200);
+      } else {
+        alert("MQTT non connecté. Connectez-vous via l'engrenage ⚙️");
+      }
+    });
+
+    // Gestion de la recharge de la caméra
+    document.getElementById('btn-reload-camera').addEventListener('click', () => {
+      if (cameraStream.src && cameraStream.src.includes(STREAM_BASE_URL)) {
+        cameraStream.src = STREAM_BASE_URL + "?t=" + new Date().getTime();
+      } else {
+        // Si le flux n'est pas lancé, on le lance
+        btnStreamStart.click();
+      }
+    });
+
+    // Initialisation
+    updateCameraStatus(false, "Flux non démarré", "Appuyez sur 'Stream Start' pour lancer la vidéo");
+  </script>
+</body>
+
+</html>
