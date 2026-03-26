@@ -800,66 +800,91 @@
           mqttConnectBtn.textContent = 'Se connecter';
           mqttConnectBtn.disabled = false;
           tempDisplay.textContent = 'En attente de données...';
+                    // Récupérer et souscrire aux topics saisis
+           const topicsInput = document.getElementById('mqtt-topics').value;
+           const topicsList = topicsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
+           currentTopic = topicsList[0] || 'sensors_data';
+           topicsList.forEach(t => mqttClient.subscribe(t));
+           
+           // Souscription auto aux topics caméra
+           mqttClient.subscribe("camera_status");
+           mqttClient.subscribe("camera_video");
 
-          // Récupérer et souscrire aux topics saisis
-          const topicsInput = document.getElementById('mqtt-topics').value;
-          const topicsList = topicsInput.split(',').map(t => t.trim()).filter(t => t.length > 0);
-          currentTopic = topicsList[0] || 'sensors_data';
-          topicsList.forEach(t => mqttClient.subscribe(t));
+           // Afficher les topics abonnés sous le badge
+           document.getElementById('mqtt-subscribed-topics').textContent =
+             'Topics : ' + topicsList.join(', ') + ', camera_status, camera_video';
+           document.getElementById('mqtt-subscribed-topics').style.display = 'block';
+         });
+         mqttClient.on('message', (receivedTopic, message) => {
+           const dataText = message.toString();
 
-          // Afficher les topics abonnés sous le badge
-          document.getElementById('mqtt-subscribed-topics').textContent =
-            'Topics : ' + topicsList.join(', ');
-          document.getElementById('mqtt-subscribed-topics').style.display = 'block';
-        });
+           // --- Gestion spéciale Flux Vidéo MQTT ---
+           if (receivedTopic === "camera_video") {
+             cameraStream.src = "data:image/jpeg;base64," + dataText;
+             if (cameraStream.style.display === 'none') {
+               cameraStream.style.display = 'block';
+               cameraError.style.display = 'none';
+             }
+             return; // Pas besoin d'historique pour les images
+           }
 
-        mqttClient.on('message', (receivedTopic, message) => {
-          const dataText = message.toString();
-          const now = new Date();
-          const timeStr = now.getHours() + ':' + now.getMinutes().toString().padStart(2, '0') + ':' + now.getSeconds().toString().padStart(2, '0');
-          discoveredTopics.set(receivedTopic, { value: dataText, time: timeStr });
-          
-          // Afficher si c'est le topic suivi OU si on écoute tout (#)
-          const isTarget = (receivedTopic === currentTopic || currentTopic === '#');
-          
-          if (discoveredTopics.size > 0 && isTarget) {
-            let displayValue = dataText;
-            let sensorObj = null;
-            try {
-              sensorObj = JSON.parse(dataText);
-              if (sensorObj.temperature !== undefined) lastTemp = sensorObj.temperature;
-              if (sensorObj.humidity !== undefined) lastHum = sensorObj.humidity;
-              
-              if (sensorObj.temperature !== undefined && sensorObj.humidity !== undefined) {
-                displayValue = `${sensorObj.temperature} °C / ${sensorObj.humidity} %`;
-              } else if (sensorObj.temperature !== undefined) {
-                displayValue = `${sensorObj.temperature} °C`;
-              } else if (sensorObj.humidity !== undefined) {
-                displayValue = `${sensorObj.humidity} %`;
-              }
-            } catch (e) { }
-            
-            // On met à jour l'affichage principal systématiquement si c'est le topic cible
-            if (displayValue !== dataText || receivedTopic === currentTopic) {
-              tempDisplay.textContent = displayValue;
-              tempDisplay.style.background = '#00b4d8';
-              setTimeout(() => { tempDisplay.style.background = '#415a77'; }, 300);
+           // --- Gestion spéciale Statut Caméra (IP) ---
+           if (receivedTopic === "camera_status") {
+             try {
+               const status = JSON.parse(dataText);
+               if (status.ip) {
+                 STREAM_BASE_URL = `http://${status.ip}:81/stream`;
+                 console.log("Nouvelle IP Caméra détectée:", status.ip);
+               }
+             } catch (e) {}
+             return;
+           }
 
-              // Ajout à l'historique des capteurs (max 10)
-              if (sensorObj && (sensorObj.temperature !== undefined || sensorObj.humidity !== undefined)) {
-                sensorsHistory.push({
-                  temp: sensorObj.temperature !== undefined ? sensorObj.temperature : lastTemp,
-                  hum: sensorObj.humidity !== undefined ? sensorObj.humidity : lastHum,
-                  time: timeStr
-                });
-                if (sensorsHistory.length > 10) sensorsHistory.shift();
-                
-                // Si la vue historique est ouverte, on rafraîchit
-                if (!historyView.classList.contains('hidden')) renderHistory();
-              }
-            }
-          }
-        });
+           const now = new Date();
+           const timeStr = now.getHours() + ':' + now.getMinutes().toString().padStart(2, '0') + ':' + now.getSeconds().toString().padStart(2, '0');
+           discoveredTopics.set(receivedTopic, { value: dataText, time: timeStr });
+           
+           // Afficher si c'est le topic suivi OU si on écoute tout (#)
+           const isTarget = (receivedTopic === currentTopic || currentTopic === '#');
+           
+           if (discoveredTopics.size > 0 && isTarget) {
+             let displayValue = dataText;
+             let sensorObj = null;
+             try {
+               sensorObj = JSON.parse(dataText);
+               if (sensorObj.temperature !== undefined) lastTemp = sensorObj.temperature;
+               if (sensorObj.humidity !== undefined) lastHum = sensorObj.humidity;
+               
+               if (sensorObj.temperature !== undefined && sensorObj.humidity !== undefined) {
+                 displayValue = `${sensorObj.temperature} °C / ${sensorObj.humidity} %`;
+               } else if (sensorObj.temperature !== undefined) {
+                 displayValue = `${sensorObj.temperature} °C`;
+               } else if (sensorObj.humidity !== undefined) {
+                 displayValue = `${sensorObj.humidity} %`;
+               }
+             } catch (e) { }
+             
+             // On met à jour l'affichage principal systématiquement si c'est le topic cible
+             if (displayValue !== dataText || receivedTopic === currentTopic) {
+               tempDisplay.textContent = displayValue;
+               tempDisplay.style.background = '#00b4d8';
+               setTimeout(() => { tempDisplay.style.background = '#415a77'; }, 300);
+
+               // Ajout à l'historique des capteurs (max 10)
+               if (sensorObj && (sensorObj.temperature !== undefined || sensorObj.humidity !== undefined)) {
+                 sensorsHistory.push({
+                   temp: sensorObj.temperature !== undefined ? sensorObj.temperature : lastTemp,
+                   hum: sensorObj.humidity !== undefined ? sensorObj.humidity : lastHum,
+                   time: timeStr
+                 });
+                 if (sensorsHistory.length > 10) sensorsHistory.shift();
+                 
+                 // Si la vue historique est ouverte, on rafraîchit
+                 if (!historyView.classList.contains('hidden')) renderHistory();
+               }
+             }
+           }
+         });
 
         mqttClient.on('error', (err) => {
           console.error('Erreur MQTT:', err);
@@ -993,11 +1018,11 @@
     }
 
     // === Gestion du flux Caméra ===
-    const cameraStream = document.getElementById('camera-stream');
-    const cameraError = document.getElementById('camera-error');
-    const btnStreamStart = document.getElementById('btn-stream-start');
-    const btnStreamStop = document.getElementById('btn-stream-stop');
-    const STREAM_BASE_URL = "http://172.20.10.3:81/stream";
+     const cameraStream = document.getElementById('camera-stream');
+     const cameraError = document.getElementById('camera-error');
+     const btnStreamStart = document.getElementById('btn-stream-start');
+     const btnStreamStop = document.getElementById('btn-stream-stop');
+     let STREAM_BASE_URL = "http://172.20.10.3:81/stream";
 
     function updateCameraStatus(isStreaming, errorText = "Caméra non disponible", smallText = "Vérifiez que l'ESP32 est allumé et sur 172.20.10.3") {
       if (isStreaming) {
@@ -1020,14 +1045,26 @@
       }
     }
 
-    btnStreamStart.addEventListener('click', () => {
-      cameraStream.src = STREAM_BASE_URL + "?t=" + new Date().getTime();
-      updateCameraStatus(true);
-    });
-
-    btnStreamStop.addEventListener('click', () => {
-      updateCameraStatus(false, "Flux arrêté", "Appuyez sur 'Stream Start' pour lancer la vidéo");
-    });
+     btnStreamStart.addEventListener('click', () => {
+       if (mqttClient && mqttClient.connected) {
+         // On tente l'IP locale d'abord si possible, mais on active aussi le flux MQTT
+         cameraStream.src = STREAM_BASE_URL + "?t=" + new Date().getTime();
+         const payload = JSON.stringify({ type: "camera", action: "stream_start" });
+         mqttClient.publish("camera_commands", payload);
+         updateCameraStatus(true);
+       } else {
+         cameraStream.src = STREAM_BASE_URL + "?t=" + new Date().getTime();
+         updateCameraStatus(true);
+       }
+     });
+ 
+     btnStreamStop.addEventListener('click', () => {
+       if (mqttClient && mqttClient.connected) {
+         const payload = JSON.stringify({ type: "camera", action: "stream_stop" });
+         mqttClient.publish("camera_commands", payload);
+       }
+       updateCameraStatus(false, "Flux arrêté", "Appuyez sur 'Stream Start' pour lancer la vidéo");
+     });
 
     // Contrôles d'alimentation (MQTT)
     document.getElementById('btn-camera-on').addEventListener('click', () => {
