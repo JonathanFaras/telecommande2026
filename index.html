@@ -600,12 +600,8 @@
           </div>
         </div>
         <div class="camera-controls">
-          <button id="btn-stream-start" class="stream-btn btn-start">▶ Stream Start</button>
-          <button id="btn-stream-stop" class="stream-btn btn-stop">⏹ Stream Stop</button>
-        </div>
-        <div class="camera-controls" style="margin-top: 8px;">
-          <button id="btn-camera-on" class="stream-btn btn-power-on">⚡ Allumer Caméra</button>
-          <button id="btn-camera-off" class="stream-btn btn-power-off">🔌 Éteindre Caméra</button>
+          <button id="btn-stream-start" class="stream-btn btn-start">▶ Démarrer Flux</button>
+          <button id="btn-stream-stop" class="stream-btn btn-stop">⏹ Arrêter Flux</button>
         </div>
       </div>
       <div class="temperature">
@@ -820,6 +816,7 @@
 
            // --- Gestion spéciale Flux Vidéo MQTT ---
            if (receivedTopic === "camera_video") {
+             if (!isStreamingUI) return; // Ignorer si le flux est éteint
              cameraStream.src = "data:image/jpeg;base64," + dataText;
              if (cameraStream.style.display === 'none') {
                cameraStream.style.display = 'block';
@@ -1023,6 +1020,7 @@
      const btnStreamStart = document.getElementById('btn-stream-start');
      const btnStreamStop = document.getElementById('btn-stream-stop');
      let STREAM_BASE_URL = "http://172.20.10.3:81/stream";
+     let isStreamingUI = false;
 
     function updateCameraStatus(isStreaming, errorText = "Caméra non disponible", smallText = "Vérifiez que l'ESP32 est allumé et sur 172.20.10.3") {
       if (isStreaming) {
@@ -1045,52 +1043,36 @@
       }
     }
 
-     btnStreamStart.addEventListener('click', () => {
-       if (mqttClient && mqttClient.connected) {
-         // On tente l'IP locale d'abord si possible, mais on active aussi le flux MQTT
-         cameraStream.src = STREAM_BASE_URL + "?t=" + new Date().getTime();
-         const payload = JSON.stringify({ type: "camera", action: "stream_start" });
-         mqttClient.publish("camera_commands", payload);
-         updateCameraStatus(true);
-       } else {
-         cameraStream.src = STREAM_BASE_URL + "?t=" + new Date().getTime();
-         updateCameraStatus(true);
-       }
-     });
- 
-     btnStreamStop.addEventListener('click', () => {
-       if (mqttClient && mqttClient.connected) {
-         const payload = JSON.stringify({ type: "camera", action: "stream_stop" });
-         mqttClient.publish("camera_commands", payload);
-       }
-       updateCameraStatus(false, "Flux arrêté", "Appuyez sur 'Stream Start' pour lancer la vidéo");
-     });
-
-    // Contrôles d'alimentation (MQTT)
-    document.getElementById('btn-camera-on').addEventListener('click', () => {
+    btnStreamStart.addEventListener('click', () => {
       if (mqttClient && mqttClient.connected) {
-        const payload = JSON.stringify({ type: "camera", action: "power_on" });
-        mqttClient.publish("camera_commands", payload);
-        // Feedback visuel
-        const btn = document.getElementById('btn-camera-on');
-        btn.style.opacity = '0.7';
-        setTimeout(() => btn.style.opacity = '1', 200);
+        isStreamingUI = true;
+        // 1. Allumer la caméra
+        mqttClient.publish("camera_commands", JSON.stringify({ type: "camera", action: "power_on" }));
+        
+        // 2. Lancer le flux (après un court délai pour l'initialisation matériel)
+        setTimeout(() => {
+          if (!isStreamingUI) return; // Si on a re-cliqué sur stop entre temps
+          mqttClient.publish("camera_commands", JSON.stringify({ type: "camera", action: "stream_start" }));
+          cameraStream.src = STREAM_BASE_URL + "?t=" + new Date().getTime();
+          updateCameraStatus(true);
+        }, 1500);
       } else {
-        alert("MQTT non connecté. Connectez-vous via l'engrenage ⚙️");
+        // Mode local uniquement si MQTT non connecté
+        isStreamingUI = true;
+        cameraStream.src = STREAM_BASE_URL + "?t=" + new Date().getTime();
+        updateCameraStatus(true);
       }
     });
 
-    document.getElementById('btn-camera-off').addEventListener('click', () => {
+    btnStreamStop.addEventListener('click', () => {
+      isStreamingUI = false;
       if (mqttClient && mqttClient.connected) {
-        const payload = JSON.stringify({ type: "camera", action: "power_off" });
-        mqttClient.publish("camera_commands", payload);
-        // Feedback visuel
-        const btn = document.getElementById('btn-camera-off');
-        btn.style.opacity = '0.7';
-        setTimeout(() => btn.style.opacity = '1', 200);
-      } else {
-        alert("MQTT non connecté. Connectez-vous via l'engrenage ⚙️");
+        // 1. Arrêter le flux
+        mqttClient.publish("camera_commands", JSON.stringify({ type: "camera", action: "stream_stop" }));
+        // 2. Éteindre la caméra
+        mqttClient.publish("camera_commands", JSON.stringify({ type: "camera", action: "power_off" }));
       }
+      updateCameraStatus(false, "Flux éteint", "Appuyez sur 'Démarrer Flux' pour lancer la vidéo");
     });
 
     // Gestion de la recharge de la caméra
@@ -1104,7 +1086,7 @@
     });
 
     // Initialisation
-    updateCameraStatus(false, "Flux non démarré", "Appuyez sur 'Stream Start' pour lancer la vidéo");
+    updateCameraStatus(false, "Flux éteint", "Appuyez sur 'Démarrer Flux' pour lancer la vidéo");
   </script>
 </body>
 
