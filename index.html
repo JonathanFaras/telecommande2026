@@ -562,8 +562,13 @@
         height: auto !important; 
         width: 100% !important;
         grid-template-columns: 1fr 1fr 1fr;
-        gap: 10px;
+        row-gap: 5px !important;    /* Rapprochement Haut/Bas */
+        column-gap: 10px;
         padding: 5px;
+      }
+      .cardinal-cell[data-direction="Gauche"], 
+      .cardinal-cell[data-direction="Droite"] {
+        margin-top: 15px !important; /* Abaissement léger */
       }
       .historique { order: 4; }
       button.reset { order: 5; }
@@ -704,7 +709,7 @@
         </div>
         <div class="camera-controls">
           <button id="btn-stream-start" class="stream-btn btn-start">▶ Démarrer Flux</button>
-          <button id="btn-stream-stop" class="stream-btn btn-stop" title="Arrêter Flux">⏹</button>
+          <button id="btn-stream-stop" class="stream-btn btn-stop">⏹ Arrêter Flux</button>
         </div>
       </div>
       <div class="temperature">
@@ -733,7 +738,7 @@
         <div class="cardinal-cell" data-direction="Centre"
           style="display: flex; justify-content: center; align-items: center;">
           <button class="cardinal-btn" data-mm="0"
-            style="background-color: #d90429; color: white; width: 100px; height: 100px; border-radius: 50%; border: 4px solid #ef233c; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 20px; display: flex; justify-content: center; align-items: center; padding: 0;">STOP</button>
+            style="background-color: #d90429; color: white; width: 100px; height: 100px; border-radius: 50%; border: 4px solid #ef233c; box-shadow: 0 4px 10px rgba(0,0,0,0.5); font-size: 20px; display: flex; justify-content: center; align-items: center; padding: 0;"></button>
         </div>
         <div class="cardinal-cell" data-direction="Droite">
           <span class="label">Droite</span>
