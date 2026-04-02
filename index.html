@@ -503,12 +503,104 @@
       background: #d90429;
     }
 
-    .btn-power-on {
-      background: #2b9348;
-    }
-
     .btn-power-off {
       background: #d00000;
+    }
+
+    /* --- Styles Mobile Responsive --- */
+    @media (max-width: 800px) {
+      body {
+        height: auto;
+        min-height: 100vh;
+        overflow-y: auto;
+        display: block;
+      }
+      .container {
+        display: flex;
+        flex-direction: column;
+        height: auto;
+        min-height: 100vh;
+        padding: 15px;
+        align-items: center;
+        gap: 20px;
+        position: relative;
+        overflow-x: hidden;
+      }
+      /* Réinitialisation de toutes les positions absolues dans la vue principale */
+      #main-view {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        gap: 25px;
+        padding-top: 50px;
+      }
+      .camera, .temperature, .cardinal-pad, .historique, .user-info, #btn-disconnect {
+        position: static !important;
+        transform: none !important;
+        width: 100% !important;
+        max-width: 450px !important;
+        margin: 0 auto !important;
+        box-sizing: border-box;
+      }
+      
+      /* Inversion forcée pour le bouton reset qui a la classe 'reset' mais pas d'ID simple */
+      button.reset {
+        position: static !important;
+        transform: none !important;
+        width: 100% !important;
+        max-width: 450px !important;
+        margin: 0 auto !important;
+        box-sizing: border-box;
+      }
+
+      /* Ordre spécifique demandé par l'utilisateur */
+      .camera { order: 1; }
+      .temperature { order: 2; margin-top: -10px !important; }
+      .cardinal-pad { 
+        order: 3; 
+        height: auto !important; 
+        width: 100% !important;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 10px;
+        padding: 5px;
+      }
+      .historique { order: 4; }
+      button.reset { order: 5; }
+      .user-info { order: 6; text-align: center; }
+      #btn-disconnect { order: 7; margin-bottom: 60px !important; }
+
+      .camera-box {
+        width: 100% !important;
+        height: 220px !important;
+      }
+      .temp-box {
+        width: 100% !important;
+        text-align: center;
+      }
+      .cardinal-btn {
+        padding: 10px 5px !important;
+        font-size: 13px !important;
+      }
+      .cardinal-cell .label {
+        font-size: 14px;
+      }
+      .cardinal-cell .btns {
+        gap: 5px;
+      }
+
+      /* Login Screen Mobile */
+      .login-form {
+        width: 90% !important;
+        padding: 30px 20px !important;
+      }
+
+      /* Modal MQTT Mobile */
+      .mqtt-modal {
+        width: 100% !important;
+        border-radius: 16px 16px 0 0 !important;
+        padding: 20px !important;
+      }
     }
   </style>
 </head>
@@ -719,6 +811,15 @@
         loginView.classList.add('hidden');
         mainView.classList.remove('hidden');
         userInfo.textContent = `Connecté en tant que: ${user}`;
+        
+        // Auto-connexion MQTT pour admin
+        const addressField = document.getElementById('mqtt-address');
+        if (!addressField.value) {
+          addressField.value = 'telecommande.cloud.shiftr.io';
+        }
+        if (!mqttClient || !mqttClient.connected) {
+          mqttConnectBtn.click();
+        }
       } else {
         loginError.style.display = 'block';
       }
@@ -947,7 +1048,7 @@
               // Ratio Vertical : 195 pas / mm (975 pas pour 5mm)
               steps = distanceMm * 195;
               
-              let m2_dir = (direction === 'Haut') ? 'backward' : 'forward';
+              let m2_dir = (direction === 'Haut') ? 'forward' : 'backward';
               payloadObj = { 
                 type: "move_by", 
                 m1_steps: 0, 
@@ -959,7 +1060,7 @@
               // Ratio Horizontal : 83.4 pas / mm (834 pas pour 10mm)
               steps = Math.round(distanceMm * 83.4);
               
-              let m1_dir = (direction === 'Droite') ? 'backward' : 'forward';
+              let m1_dir = (direction === 'Droite') ? 'forward' : 'backward';
               payloadObj = { 
                 type: "move_by", 
                 m1_steps: steps, 
