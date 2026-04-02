@@ -561,37 +561,57 @@
         order: 3; 
         height: auto !important; 
         width: 100% !important;
-        grid-template-columns: 1fr 1fr 1fr;
-        row-gap: 5px !important;    /* Rapprochement Haut/Bas */
-        column-gap: 10px;
+        grid-template-columns: auto auto auto;
+        justify-content: center;
+        align-items: center;
+        row-gap: 2px !important;    /* Très serré verticalement */
+        column-gap: 2px !important; /* Très serré horizontalement pour le débordement */
         padding: 5px;
+      }
+      .cardinal-cell {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-width: 0;
       }
       .cardinal-cell[data-direction="Gauche"], 
       .cardinal-cell[data-direction="Droite"] {
-        margin-top: 15px !important; /* Abaissement léger */
+        margin-top: 10px !important; /* Abaissement très léger */
       }
+      .cardinal-cell .btns {
+        gap: 2px !important;
+      }
+      .cardinal-cell .label {
+        font-size: 11px;
+        margin-bottom: 2px;
+      }
+      .cardinal-btn {
+        padding: 12px 2px !important; 
+        font-size: 11px !important; 
+        min-width: 42px; /* Largeur minimum pour le clic */
+      }
+
+      /* Bouton rouge Central : Réduit de 100px à 65px */
+      .cardinal-cell[data-direction="Centre"] button {
+        width: 65px !important;
+        height: 65px !important;
+        transform: scale(1) !important;
+      }
+
       .historique { order: 4; }
       button.reset { order: 5; }
       .user-info { order: 6; text-align: center; }
-      #btn-disconnect { order: 7; margin-bottom: 60px !important; }
+      #btn-disconnect { order: 7; margin-bottom: 50px !important; }
 
       .camera-box {
         width: 100% !important;
-        height: 220px !important;
+        height: 200px !important;
       }
       .temp-box {
         width: 100% !important;
         text-align: center;
-      }
-      .cardinal-btn {
-        padding: 15px 12px !important; /* Retour proche de l'original mais adapté mobile */
-        font-size: 18px !important; 
-      }
-      .cardinal-cell .label {
         font-size: 14px;
-      }
-      .cardinal-cell .btns {
-        gap: 8px;
       }
 
       /* Bouton Stop plus discret on mobile */
