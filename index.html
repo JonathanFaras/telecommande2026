@@ -1049,9 +1049,10 @@
         // 1. Allumer la caméra
         mqttClient.publish("camera_commands", JSON.stringify({ type: "camera", action: "power_on" }));
         
-        // 2. Lancer le flux (après un court délai pour l'initialisation matériel)
+        // 2. Lancer le flux et forcer le profil Vitesse
         setTimeout(() => {
-          if (!isStreamingUI) return; // Si on a re-cliqué sur stop entre temps
+          if (!isStreamingUI) return; 
+          mqttClient.publish("camera_commands", JSON.stringify({ type: "camera", action: "profile", value: "low" }));
           mqttClient.publish("camera_commands", JSON.stringify({ type: "camera", action: "stream_start" }));
           cameraStream.src = STREAM_BASE_URL + "?t=" + new Date().getTime();
           updateCameraStatus(true);
