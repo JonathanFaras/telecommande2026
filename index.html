@@ -130,19 +130,6 @@ body {
 
 .btn-disconnect { position: absolute; top: 20px; right: 20px; background-color: #d90429; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: bold; z-index: 50; }
 
-.latency-badge {
-  position: absolute;
-  top: 60px;
-  right: 20px;
-  background: rgba(0, 180, 216, 0.2);
-  color: #00b4d8;
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: bold;
-  border: 1px solid rgba(0, 180, 216, 0.3);
-}
-.latency-badge.high { color: #ef233c; border-color: #ef233c; background: rgba(239, 35, 60, 0.1); }
 .btn-reset-style { width: auto; padding: 10px 20px; margin: 0; background: linear-gradient(135deg, #415a77, #d90429); }
 .btn-back-style { width: auto; padding: 10px 20px; margin: 0; background: linear-gradient(135deg, #415a77, #778da9); }
 .empty-msg { position: absolute; top: 60%; color: rgba(255,255,255,0.3); }
@@ -436,7 +423,6 @@ body {
     <!-- Vue principale -->
     <div id="main-view" class="hidden">
       <div class="user-info" id="user-info"></div>
-      <div id="latency-badge" class="latency-badge hidden">Latence: <span id="latency-val">--</span>ms</div>
       <button id="btn-disconnect" class="btn-disconnect">Déconnexion</button>
       
       <div class="camera">
@@ -545,7 +531,6 @@ let lastTemp = "—";
 let lastHum = "—";
 let STREAM_BASE_URL = "http://172.20.10.3:81/stream";
 let isStreamingUI = false;
-const latencyTracker = new Map(); // Store { id: startTime }
 
 // Sélecteurs d'éléments
 const el = {
@@ -567,9 +552,7 @@ const el = {
   mqttConnect: document.getElementById('btn-mqtt-connect'),
   mqttDisconnect: document.getElementById('btn-mqtt-disconnect'),
   mqttError: document.getElementById('mqtt-error-msg'),
-  mqttSubscribed: document.getElementById('mqtt-subscribed-topics'),
-  latencyBadge: document.getElementById('latency-badge'),
-  latencyVal: document.getElementById('latency-val')
+  mqttSubscribed: document.getElementById('mqtt-subscribed-topics')
 };
 
 // === Authentification ===
@@ -636,11 +619,10 @@ el.mqttConnect.addEventListener('click', () => {
 
       const topics = document.getElementById('mqtt-topics').value.split(',').map(t => t.trim()).filter(t => t);
       topics.forEach(t => mqttClient.subscribe(t));
-      mqttClient.subscribe(["camera_status", "camera_video", "commands_ack"]);
+      mqttClient.subscribe(["camera_status", "camera_video"]);
 
-      el.mqttSubscribed.textContent = 'Topics : ' + topics.join(', ') + ', camera_status, camera_video, commands_ack';
+      el.mqttSubscribed.textContent = 'Topics : ' + topics.join(', ') + ', camera_status, camera_video';
       el.mqttSubscribed.style.display = 'block';
-      el.latencyBadge.classList.remove('hidden');
     });
 
     mqttClient.on('message', handleMqttMessage);
@@ -670,19 +652,7 @@ function handleMqttMessage(topic, message) {
     return;
   }
 
-  if (topic === "commands_ack") {
-    try {
-      const ack = JSON.parse(data);
-      if (ack.msg_id && latencyTracker.has(ack.msg_id)) {
-        const startTime = latencyTracker.get(ack.msg_id);
-        const latency = Math.round(performance.now() - startTime);
-        el.latencyVal.textContent = latency;
-        el.latencyBadge.classList.toggle('high', latency > 200);
-        latencyTracker.delete(ack.msg_id);
-      }
-    } catch(e) {}
-    return;
-  }
+
 
   const now = new Date().toLocaleTimeString('fr-FR');
   discoveredTopics.set(topic, { value: data, time: now });
@@ -764,12 +734,7 @@ document.querySelectorAll('.cardinal-btn').forEach(btn => {
     }
 
     if (mqttClient?.connected) {
-      const msgId = Math.random().toString(16).substr(2, 8);
-      const payloadObj = JSON.parse(message);
-      payloadObj.msg_id = msgId;
-      latencyTracker.set(msgId, performance.now());
-      
-      mqttClient.publish("motors_commands", JSON.stringify(payloadObj));
+      mqttClient.publish("motors_commands", message);
     }
     
     // Effets visuels communs
@@ -824,17 +789,10 @@ function updateCamUI(streaming, error = "Caméra non disponible", small = "") {
 
 el.btnStreamStart.addEventListener('click', () => {
   if (mqttClient?.connected) {
-    const sendCmd = (payload) => {
-      const msgId = Math.random().toString(16).substr(2, 8);
-      payload.msg_id = msgId;
-      latencyTracker.set(msgId, performance.now());
-      mqttClient.publish("camera_commands", JSON.stringify(payload));
-    };
-
-    sendCmd({ type: "camera", action: "power_on" });
+    mqttClient.publish("camera_commands", JSON.stringify({ type: "camera", action: "power_on" }));
     setTimeout(() => {
-      sendCmd({ type: "camera", action: "profile", value: "low" });
-      sendCmd({ type: "camera", action: "stream_start" });
+      mqttClient.publish("camera_commands", JSON.stringify({ type: "camera", action: "profile", value: "low" }));
+      mqttClient.publish("camera_commands", JSON.stringify({ type: "camera", action: "stream_start" }));
       el.cameraStream.src = STREAM_BASE_URL + "?t=" + Date.now();
       updateCamUI(true);
     }, 1500);
@@ -846,14 +804,8 @@ el.btnStreamStart.addEventListener('click', () => {
 
 el.btnStreamStop.addEventListener('click', () => {
   if (mqttClient?.connected) {
-    const sendCmd = (payload) => {
-      const msgId = Math.random().toString(16).substr(2, 8);
-      payload.msg_id = msgId;
-      latencyTracker.set(msgId, performance.now());
-      mqttClient.publish("camera_commands", JSON.stringify(payload));
-    };
-    sendCmd({ type: "camera", action: "stream_stop" });
-    sendCmd({ type: "camera", action: "power_off" });
+    mqttClient.publish("camera_commands", JSON.stringify({ type: "camera", action: "stream_stop" }));
+    mqttClient.publish("camera_commands", JSON.stringify({ type: "camera", action: "power_off" }));
   }
   updateCamUI(false, "Flux éteint", "Appuyez sur 'Démarrer Flux'");
 });
